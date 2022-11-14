@@ -56,18 +56,15 @@ fn main() {
         }
 
         Commands::Save => {
-            let mut entries: Vec<DirEntry> = Vec::new();
+            let expr = match args.prefix.as_deref() {
+                Some(s) => format!("^{}-{}.*md$", s, args.project),
+                None => format!("^{}.*md$", args.project),
+            };
+            let re = Regex::new(expr.as_str()).unwrap();
 
+            let mut entries: Vec<DirEntry> = Vec::new();
             for entry_res in WalkDir::new("./") {
                 let entry = entry_res.unwrap();
-
-                let expr = match args.prefix.as_deref() {
-                    Some(s) => format!("^{}-{}.*md$", s, args.project),
-                    None => format!("^{}.*md$", args.project),
-                };
-
-                let re = Regex::new(expr.as_str()).unwrap();
-
                 if re.is_match(entry.file_name().to_str().unwrap()) {
                     entries.push(entry);
                 }
@@ -83,7 +80,6 @@ fn main() {
             for entry in entries {
                 if Path::new(&project_file_path).exists() {
                     let project_file_bytes = std::fs::read(&project_file_path).unwrap();
-
                     let mut file = OpenOptions::new()
                         .write(true)
                         .append(true)
@@ -97,7 +93,6 @@ fn main() {
                 }
 
                 let file_bytes = std::fs::read(entry.path()).unwrap();
-
                 let mut project_file = OpenOptions::new()
                     .write(true)
                     .create_new(true)
