@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use regex::Regex;
 use walkdir::{DirEntry, WalkDir};
+use anyhow::Result;
 
 /// Chronological notes
 #[derive(Parser, Debug)]
@@ -32,7 +33,7 @@ enum Commands {
     Save,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     let args = Cli::parse();
 
     let rittle_home = format!("{}/.rittle", env::var("HOME")?);
