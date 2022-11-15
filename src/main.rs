@@ -1,13 +1,14 @@
 use std::env;
 use std::fs::{File, OpenOptions};
 use std::io::prelude::*;
+use std::io::ErrorKind;
 use std::path::Path;
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
 use regex::Regex;
 use walkdir::{DirEntry, WalkDir};
-use anyhow::Result;
 
 /// Chronological notes
 #[derive(Parser, Debug)]
@@ -79,18 +80,28 @@ fn main() -> Result<()> {
             entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
 
             for entry in entries {
-                // todo: rittle home should exist
-                if Path::new(&project_file_path).exists() {
-                    let project_file_bytes = std::fs::read(&project_file_path)?;
-                    let mut file = OpenOptions::new()
-                        .write(true)
-                        .append(true)
-                        .open(entry.path())?;
-                    file.write(String::from("\n\n").as_bytes())?;
-                    file.write(&project_file_bytes)?;
-
-                    std::fs::remove_file(&project_file_path)?;
-                }
+                match std::fs::read(&project_file_path) {
+                    Ok(bytes) => {
+                        let mut file = OpenOptions::new()
+                            .write(true)
+                            .append(true)
+                            .open(entry.path())?;
+                        file.write(String::from("\n\n").as_bytes())?;
+                        file.write(&bytes)?;
+                        std::fs::remove_file(&project_file_path)?;
+                    }
+                    Err(error) => {
+                        match error.kind() {
+                            ErrorKind::NotFound => {
+                                std::fs::create_dir_all(Path::new(&rittle_home))?;
+                            }
+                            _ => {
+                                // todo: rethrow error
+                                panic!("Couldn't create rittle home");
+                            }
+                        };
+                    }
+                };
 
                 let file_bytes = std::fs::read(entry.path())?;
                 let mut project_file = File::create(Path::new(&project_file_path))?;
