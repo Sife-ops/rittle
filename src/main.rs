@@ -58,15 +58,10 @@ fn main() -> Result<()> {
         }
 
         Commands::Save => {
-            let expr = match args.prefix.as_deref() {
-                Some(s) => format!("^{}-{}.*md$", s, args.project),
-                None => format!("^{}.*md$", args.project),
-            };
-            let re = Regex::new(expr.as_str())?;
-
             let mut entries: Vec<DirEntry> = Vec::new();
             for entry in WalkDir::new("./") {
                 let e = entry?;
+                let re = Regex::new(format!("^.*{}-.*md$", args.project).as_str())?;
                 if re.is_match(e.file_name().to_str().unwrap()) {
                     entries.push(e);
                 }
