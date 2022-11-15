@@ -32,10 +32,10 @@ enum Commands {
     Save,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
 
-    let rittle_home = format!("{}/.rittle", env::var("HOME").unwrap());
+    let rittle_home = format!("{}/.rittle", env::var("HOME")?);
     let project_file_path = format!("{}/{}.md", rittle_home, args.project);
 
     match args.command {
@@ -47,10 +47,10 @@ fn main() {
                 None => format!("{}-{}.md", args.project, iso_date),
             };
 
-            let mut file = File::create(Path::new(&file_name)).unwrap();
+            let mut file = File::create(Path::new(&file_name))?;
 
             let content = format!("# {}\n\n## New note\n\n", iso_date);
-            file.write_all(content.as_bytes()).unwrap();
+            file.write_all(content.as_bytes())?;
 
             println!("{}", file_name);
         }
@@ -60,13 +60,13 @@ fn main() {
                 Some(s) => format!("^{}-{}.*md$", s, args.project),
                 None => format!("^{}.*md$", args.project),
             };
-            let re = Regex::new(expr.as_str()).unwrap();
+            let re = Regex::new(expr.as_str())?;
 
             let mut entries: Vec<DirEntry> = Vec::new();
-            for entry_res in WalkDir::new("./") {
-                let entry = entry_res.unwrap();
-                if re.is_match(entry.file_name().to_str().unwrap()) {
-                    entries.push(entry);
+            for entry in WalkDir::new("./") {
+                let e = entry?;
+                if re.is_match(e.file_name().to_str().unwrap()) {
+                    entries.push(e);
                 }
             }
 
@@ -78,31 +78,27 @@ fn main() {
             entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
 
             for entry in entries {
+                // todo: rittle home should exist
                 if Path::new(&project_file_path).exists() {
-                    let project_file_bytes = std::fs::read(&project_file_path).unwrap();
+                    let project_file_bytes = std::fs::read(&project_file_path)?;
                     let mut file = OpenOptions::new()
                         .write(true)
                         .append(true)
-                        .open(entry.path())
-                        .unwrap();
+                        .open(entry.path())?;
+                    file.write(String::from("\n\n").as_bytes())?;
+                    file.write(&project_file_bytes)?;
 
-                    file.write(String::from("\n\n").as_bytes()).unwrap();
-                    file.write(&project_file_bytes).unwrap();
-
-                    std::fs::remove_file(&project_file_path).unwrap();
+                    std::fs::remove_file(&project_file_path)?;
                 }
 
-                let file_bytes = std::fs::read(entry.path()).unwrap();
-                let mut project_file = OpenOptions::new()
-                    .write(true)
-                    .create_new(true)
-                    .open(&project_file_path)
-                    .unwrap();
+                let file_bytes = std::fs::read(entry.path())?;
+                let mut project_file = File::create(Path::new(&project_file_path))?;
+                project_file.write(&file_bytes)?;
 
-                project_file.write(&file_bytes).unwrap();
-
-                std::fs::remove_file(entry.path()).unwrap();
+                std::fs::remove_file(entry.path())?;
             }
         }
-    }
+    };
+
+    Ok(())
 }
