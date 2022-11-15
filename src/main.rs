@@ -89,19 +89,16 @@ fn main() -> Result<()> {
                         file.write(String::from("\n\n").as_bytes())?;
                         file.write(&bytes)?;
                         std::fs::remove_file(&project_file_path)?;
+                        Ok(())
                     }
-                    Err(error) => {
-                        match error.kind() {
-                            ErrorKind::NotFound => {
-                                std::fs::create_dir_all(Path::new(&rittle_home))?;
-                            }
-                            _ => {
-                                // todo: rethrow error
-                                panic!("Couldn't create rittle home");
-                            }
-                        };
-                    }
-                };
+                    Err(error) => match error.kind() {
+                        ErrorKind::NotFound => {
+                            std::fs::create_dir_all(Path::new(&rittle_home))?;
+                            Ok(())
+                        }
+                        _ => Err(error),
+                    },
+                }?;
 
                 let file_bytes = std::fs::read(entry.path())?;
                 let mut project_file = File::create(Path::new(&project_file_path))?;
