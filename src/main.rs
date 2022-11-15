@@ -61,7 +61,7 @@ fn main() -> Result<()> {
             let mut entries: Vec<DirEntry> = Vec::new();
             for entry in WalkDir::new("./") {
                 let e = entry?;
-                let re = Regex::new(format!("^.*{}-.*md$", args.project).as_str())?;
+                let re = Regex::new(format!("^.*{}-.*T.*Z.md$", args.project).as_str())?;
                 if re.is_match(e.file_name().to_str().unwrap()) {
                     entries.push(e);
                 }
