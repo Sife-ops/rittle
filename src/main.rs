@@ -31,7 +31,10 @@ enum Commands {
     New,
 
     /// Save notes
-    Save,
+    Save {
+        #[arg(short, long, default_value = "true")]
+        recursive: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -51,30 +54,31 @@ fn main() -> Result<()> {
 
             let mut file = File::create(Path::new(&file_name))?;
 
-            let content = format!("# {}\n\n## New note\n\n", iso_date);
+            let content = format!("# {}\n\n", iso_date);
             file.write_all(content.as_bytes())?;
 
             println!("{}", file_name);
         }
 
-        Commands::Save => {
-            let mut entries: Vec<DirEntry> = Vec::new();
-            for entry in WalkDir::new("./") {
-                let e = entry?;
-                let re = Regex::new(format!("^.*{}-.*T.*Z.md$", args.project).as_str())?;
-                if re.is_match(e.file_name().to_str().unwrap()) {
-                    entries.push(e);
+        Commands::Save { recursive } => {
+            let mut dir_entries: Vec<DirEntry> = Vec::new();
+
+            for dir_entry_ in WalkDir::new("./") {
+                let dir_entry = dir_entry_?;
+                let re = Regex::new(format!("^.*{}-.*T.*Z\\.md$", args.project).as_str())?;
+                if re.is_match(dir_entry.file_name().to_str().unwrap()) {
+                    dir_entries.push(dir_entry);
                 }
             }
 
-            if entries.len() < 1 {
+            if dir_entries.len() < 1 {
                 println!("Didn't find any notes.");
                 std::process::exit(0);
             }
 
-            entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
+            dir_entries.sort_by(|a, b| a.file_name().cmp(b.file_name()));
 
-            for entry in entries {
+            for entry in dir_entries {
                 match std::fs::read(&project_file_path) {
                     Ok(bytes) => {
                         let mut file = OpenOptions::new()
