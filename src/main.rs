@@ -31,10 +31,7 @@ enum Commands {
     New,
 
     /// Save notes
-    Save {
-        #[arg(short, long, default_value = "true")]
-        recursive: bool,
-    },
+    Save,
 }
 
 fn main() -> Result<()> {
@@ -60,14 +57,14 @@ fn main() -> Result<()> {
             println!("{}", file_name);
         }
 
-        Commands::Save { recursive } => {
+        Commands::Save => {
             let mut dir_entries: Vec<DirEntry> = Vec::new();
-
-            for dir_entry_ in WalkDir::new("./") {
-                let dir_entry = dir_entry_?;
-                let re = Regex::new(format!("^.*{}-.*T.*Z\\.md$", args.project).as_str())?;
-                if re.is_match(dir_entry.file_name().to_str().unwrap()) {
-                    dir_entries.push(dir_entry);
+            for result in WalkDir::new("./") {
+                if let Ok(dir_entry) = result {
+                    let re = Regex::new(format!("^.*{}-.*T.*Z\\.md$", args.project).as_str())?;
+                    if re.is_match(dir_entry.file_name().to_str().unwrap()) {
+                        dir_entries.push(dir_entry);
+                    }
                 }
             }
 
